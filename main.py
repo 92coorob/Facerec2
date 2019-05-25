@@ -15,6 +15,8 @@ from align_custom import AlignCustom
 from face_feature import FaceFeature
 from mtcnn_detect import MTCNNDetect
 from tf_graph import FaceRecGraph
+from datetime import date
+import calendar
 import argparse
 import sys
 import json
@@ -24,24 +26,29 @@ import numpy as np
 import datetime
 import pyrebase
 import datetime
+import pyttsx3;
 now = datetime.datetime.now()
+engine = pyttsx3.init();
+
 config = {
-  "apiKey": "AIzaSyAK1iztrB4nrYXQaw6xBgi2D1t4ID9gfYY",
-  "authDomain": "facialrecognition-b1916.firebaseapp.com",
-  "databaseURL": "https://facialrecognition-b1916.firebaseio.com",
-  "storageBucket": "facialrecognition-b1916.appspot.com"
+  "apiKey": "Insert your own key",
+  "authDomain": "Insert your own domain.firebaseapp.com",
+  "databaseURL": "https://Insert your own URL.firebaseio.com",
+  "storageBucket": "Insert your own Storage bucket.appspot.com"
 }
 firebase = pyrebase.initialize_app(config)
 # Get a reference to the auth service
 auth = firebase.auth()
-email = "robertcook.rdc@gmail.com"
-password = "General2012"
+email = "Insert your own email"
+password = "Insert your own password"
+DataIn = "facerec_128D.txt"
+DataOut = "facerec_128D.txt"
 #auth.create_user_with_email_and_password(email, password)
 # Log the user in
-user = auth.sign_in_with_email_and_password("robertcook.rdc@gmail.com", "General2012")
+user = auth.sign_in_with_email_and_password("Insert your own email", "Insert your own password")
 db = firebase.database()
 
-TIMEOUT = 10 #10 seconds
+#TIMEOUT = 10 #10 seconds
 currentDT = datetime.datetime.now()
 
 def main(args):
@@ -50,6 +57,8 @@ def main(args):
         camera_recog()
     elif mode == "input":
         create_manual_data();
+    elif mode =="delete":
+        deleteV3(DataIn, DataOut)
     else:
         raise ValueError("Unimplemented mode")
 '''
@@ -63,6 +72,10 @@ Images from Video Capture -> detect faces' regions -> crop those faces and align
 
 '''
 def camera_recog():
+    FRGraph = FaceRecGraph();
+    MTCNNGraph = FaceRecGraph();
+    extract_feature = FaceFeature(FRGraph)
+    face_detect = MTCNNDetect(MTCNNGraph, scale_factor=2); #scale_factor, rescales image for faster detection
     print("[INFO] camera sensor warming up...")
     vs = cv2.VideoCapture(0); #get input from webcam
     detect_time = time.time()
@@ -109,7 +122,89 @@ facerec_128D.txt Data Structure:
 This function basically does a simple linear search for
 ^the 128D vector with the min distance to the 128D vector of the face on screen
 '''
-def findPeople(features_arr, positions, thres = 0.6, percent_thres = 60):
+def deleteV3(DataIn, DataOut):
+    #--- Load Data ---
+    file = open(DataIn,"r")
+    array = file.read()
+
+    data = json.loads(array)
+
+    file.close()
+
+    #--- Names ---
+    NameArray = list(data)
+    NameRange = len(NameArray)
+
+    for i in range (0, NameRange):
+        print("({}) {}".format(i+1, NameArray[i]))
+
+    #--- Choice ---
+    while True:
+        try:
+            choice = int(input("Choose which data entry to delete (n)\nInput 0 to delete multiple items : "))
+        except ValueError:
+            print("Please choose an integer")
+            continue
+
+        # Check if input are less than zero
+        if choice < 0:
+            print("Please choose a positive number")
+            continue
+
+        break
+
+    #--- Multiple deletes ---
+    if choice == 0:
+        # Initialise
+        ToBeDeleted = []
+        Counter = 1
+        print("Exit with a 0")
+
+        while True:
+            try:
+                TempChoice = int(input("Data no {} to be deleted : ".format(Counter)))
+            except ValueError:
+                print("Please choose an integer")
+                continue
+
+            # Check if input are less than zero
+            if TempChoice < 0:
+                print("Please choose a positive number")
+                continue
+
+            ToBeDeleted.append(TempChoice)
+            Counter += 1
+
+            if TempChoice == 0:
+                break
+
+        # Sort the array
+        ToBeDeleted.sort()
+
+    #--- delete ---
+    DataNew = {}
+    Temp = 0
+
+    # Single Delete
+    if not choice == 0:
+        for i in NameArray:
+            Temp = Temp + 1
+            if Temp != choice:
+                DataNew[i] = data[i]
+    # Multiple delete
+    else:
+        for i in NameArray:
+            Temp = Temp + 1
+            if not (Temp in ToBeDeleted):
+                DataNew[i] = data[i]
+
+
+
+    #--- Store in file ---
+    with open(DataOut, 'w') as outfile:
+        json.dump(DataNew, outfile)
+
+def findPeople(features_arr, positions, thres = 0.6, percent_thres = 90):
     '''
     :param features_arr: a list of 128d Features of all faces on screen
     :param positions: a list of face position types of all faces on screen
@@ -137,11 +232,43 @@ def findPeople(features_arr, positions, thres = 0.6, percent_thres = 60):
             result = "Unknown"
         returnRes.append((result,percentage))
     #print(result)
+
+    weekNumber = int(date.today().isocalendar()[1])
+    my_date = date.today()
+    day = calendar.day_name[my_date.weekday()]
+    hour = int(now.strftime("%H"))
     test = now.strftime("%Y-%m-%d %H:%M")
-    db.child("users").child(result).update({"Date": test})
+    #all these are time slots for our club meetings
+    #this should be changed to whatever event you want to take attendance for
+    if result != "Unknown":
+        if weekNumber == 13 and day == "Wednesday" and hour >= 17 and hour <= 20:
+            db.child("classes").child("MVP").child("Week1").child(result).update({"Attendance": "True"})
+        elif weekNumber == 14 and day == "Wednesday" and hour >= 17 and hour <= 20:
+            db.child("classes").child("MVP").child("Week2").child(result).update({"Attendance": "True"})
+        elif weekNumber == 15 and day == "Wednesday" and hour >= 17 and hour <= 20:
+            db.child("classes").child("MVP").child("Week3").child(result).update({"Attendance": "True"})
+        elif weekNumber == 16 and day == "Wednesday" and hour >= 17 and hour <= 20:
+            db.child("classes").child("MVP").child("Week4").child(result).update({"Attendance": "True"})
+        elif weekNumber == 17 and day == "Wednesday" and hour >= 17 and hour <= 20:
+            db.child("classes").child("MVP").child("Week5").child(result).update({"Attendance": "True"})
+        elif weekNumber == 18 and day == "Wednesday" and hour >= 17 and hour <= 20:
+            db.child("classes").child("MVP").child("Week6").child(result).update({"Attendance": "True"})
+        elif weekNumber == 19 and day == "Wednesday" and hour >= 17 and hour <= 20:
+            db.child("classes").child("MVP").child("Week7").child(result).update({"Attendance": "True"})
+        elif weekNumber == 20 and day == "Wednesday" and hour >= 17 and hour <= 20:
+            db.child("classes").child("MVP").child("Week8").child(result).update({"Attendance": "True"})
+        elif weekNumber == 21 and day == "Wednesday" and hour >= 17 and hour <= 20:
+            db.child("classes").child("MVP").child("Week9").child(result).update({"Attendance": "True"})
+        elif weekNumber == 22 and day == "Wednesday" and hour >= 17 and hour <= 20:
+            db.child("classes").child("MVP").child("Week10").child(result).update({"Attendance": "True"})
+
+        db.child("users").child(result).update({"Date": test})
+        #hi = "hello "
+        #greeting = hi+result
+        #engine.say(greeting);
+        #ngine.runAndWait() ;
+
     return returnRes
-
-
 
 
 def register(result):
@@ -169,10 +296,16 @@ User input his/her name or ID -> Images from Video Capture -> detect the face ->
 
 
 
+
+
 def create_manual_data():
+    FRGraph = FaceRecGraph();
+    MTCNNGraph = FaceRecGraph();
+    face_detect = MTCNNDetect(MTCNNGraph, scale_factor=2); #scale_factor, rescales image for faster detection
+    extract_feature = FaceFeature(FRGraph)
     vs = cv2.VideoCapture(0); #get input from webcam
     print("Please input new user ID:")
-    new_name = input(); #ez python input()
+    new_name = input().lower(); #ez python input()
     f = open('./facerec_128D.txt','r');
     data_set = json.loads(f.read());
     person_imgs = {"Left" : [], "Right": [], "Center": []};
@@ -199,13 +332,12 @@ def create_manual_data():
 
 
 
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, help="Run camera recognition", default="camera")
     args = parser.parse_args(sys.argv[1:]);
-    FRGraph = FaceRecGraph();
-    MTCNNGraph = FaceRecGraph();
     aligner = AlignCustom();
-    extract_feature = FaceFeature(FRGraph)
-    face_detect = MTCNNDetect(MTCNNGraph, scale_factor=2); #scale_factor, rescales image for faster detection
     main(args);

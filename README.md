@@ -27,9 +27,7 @@ A simple working facial recognition program.
     `python3 main.py` to run the program
     `python3 main.py --mode "input"` to add new user. Start turning left, right, up, down after inputting the new name. Turn slowly to avoid blurred images
 
-To achieve best accuracy, please try to mimick what I did here in this gif while inputting new subject:
-    
-![GIF Demo](https://media.giphy.com/media/3o7aD7CZ6C3RLCvLgs/giphy.gif)
+
 
         
 ### Flags:
@@ -38,9 +36,15 @@ To achieve best accuracy, please try to mimick what I did here in this gif while
 
 
 ## General Information:
-Project: Facial Recogition
+Project: IoT Image Recognition
 
-This is a simple minified version of a bigger project I was working on this summer.
+We are adapting this facial recognition project to be used as an attendance system. 
+
+This project was inspired by the poor attendance system currently implemented in JCU. How many times have you missed attendance because you forgot to tap in during class? for your average student it’s probably more than you can count.
+
+Wouldn’t it be nice if you could just walk in to the classroom and your presence alone would be enough to clock your attendance. This might be possible using face recognition. By having cameras scanning the faces of people in the classroom the attendance would all be automated.
+
+It could potentially also stop people from being able to “tap and leave” by monitoring the presence of students throughout the entire lecture.
 
 ### Info on the models I used:
 
@@ -63,25 +67,14 @@ Tensorflow: The infamous Google's Deep Learning Framework
 OpenCV: Image processing (VideoCapture, resizing,..)
 
 
-## Suggestions for Improvement:
-To keep this repo as simple as possible, I will probably have this "plug-in" in a seperate repo:
-
-Given the constrain of the facenet model's accuracy, there are many ways you can improve accuracy in real world application. One of my suggestion would be to create a tracker for each detected face on screen, then run recognition on each of them in real time. Then, decide who is in each tracker after some number of frames (3 - 10 frames, depending on how fast your machine is). Keep doing the same thing until the tracker disappears or loses track. Your result can look somewhat like this:
-
-`{"Unknown" :3, "PersonA": 1, "PersonB": 20}` ---> This tracker is tracking PersonB
-
-This will definitely improve your program liability, because the result will most likely be leaning toward the right subject in the picture after some number of frames, instead of just deciding right away after 1 frame like you normally would. One benefit of this approach is that the longer the person stays in front of the camera, the more accurate and confident the result is, as confidence points get incremented over time.
-Also, you can do some multi-threading/processing tricks to improve performance.
-
-### Demos:
-
-![GIF Demo](https://media.giphy.com/media/l378mx3j8ZsWlOuze/giphy.gif)
-
-Live demo: https://www.youtube.com/watch?v=6CeCheBN0Mg
 
 
 
-@Author: David Vu
+
+
+
+
 
 ## Credits:
+	-  Original project from: David Vu https://github.com/vudung45/FaceRec
     -  Pretrained models from: https://github.com/davidsandberg/facenet
